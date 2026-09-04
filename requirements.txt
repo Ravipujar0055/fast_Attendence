@@ -21,3 +21,5 @@ pillow
 # Voice Recognition
 librosa
 webrtcvad-wheels
+
+resemblyzer
