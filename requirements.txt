@@ -25,5 +25,3 @@ librosa
 webrtcvad-wheels
 
 resemblyzer
-
-XlsxWriter
