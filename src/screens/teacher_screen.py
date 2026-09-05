@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+from io import BytesIO
 
 from datetime import datetime
 
@@ -608,6 +609,52 @@ def teacher_tab_manage_subjects():
 # ATTENDANCE RECORDS
 # =========================================================
 
+def build_attendance_excel(session_rows, session):
+    """Build a shareable Excel file for one attendance session."""
+    export_df = session_rows[
+        ["Student ID", "Student", "Attendance Status"]
+    ].copy()
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        export_df.to_excel(
+            writer,
+            sheet_name="Attendance",
+            index=False,
+            startrow=4,
+        )
+
+        workbook = writer.book
+        worksheet = writer.sheets["Attendance"]
+        title_format = workbook.add_format({
+            "bold": True,
+            "font_size": 16,
+            "font_color": "#172554",
+        })
+        detail_format = workbook.add_format({
+            "font_color": "#475569",
+        })
+        header_format = workbook.add_format({
+            "bold": True,
+            "font_color": "#FFFFFF",
+            "bg_color": "#4F5EE8",
+            "border": 0,
+        })
+
+        worksheet.write("A1", "Attendance report", title_format)
+        worksheet.write("A2", f"Subject: {session['Subject']} ({session['Subject Code']})", detail_format)
+        worksheet.write("A3", f"Session: {session['Time']}", detail_format)
+        for col_num, column_name in enumerate(export_df.columns):
+            worksheet.write(4, col_num, column_name, header_format)
+
+        worksheet.set_column("A:A", 14)
+        worksheet.set_column("B:B", 28)
+        worksheet.set_column("C:C", 20)
+        worksheet.freeze_panes(5, 0)
+        worksheet.autofilter(4, 0, 4 + len(export_df), len(export_df.columns) - 1)
+
+    return output.getvalue()
+
 def teacher_tab_attendance_records():
 
     st.header("Attendance Records")
@@ -660,6 +707,7 @@ def teacher_tab_attendance_records():
             ts_group = None
 
         subject = r.get("subjects") or {}
+        student = r.get("students") or {}
 
         data.append(
             {
@@ -673,6 +721,8 @@ def teacher_tab_attendance_records():
                     "subject_code",
                     "N/A"
                 ),
+                "Student ID": student.get("student_id", r.get("student_id", "N/A")),
+                "Student": student.get("name", "Unknown student"),
                 "is_present": bool(
                     r.get(
                         "is_present",
@@ -731,30 +781,44 @@ def teacher_tab_attendance_records():
         + " Students"
     )
 
-    # -----------------------------------------------------
-    # Display dataframe
-    # -----------------------------------------------------
+    summary = summary.sort_values(by="ts_group", ascending=False)
 
-    display_df = (
-        summary
-        .sort_values(
-            by="ts_group",
-            ascending=False
-        )[
-            [
-                "Time",
-                "Subject",
-                "Subject Code",
-                "Attendance Stats"
-            ]
-        ]
-    )
+    # -----------------------------------------------------
+    # Display each session with its own shareable Excel export.
+    # -----------------------------------------------------
+    headings = st.columns([1.5, 1.1, 1.1, 1.35, 0.85])
+    for column, label in zip(
+        headings,
+        ["Time", "Subject", "Subject Code", "Attendance Stats", "Export"],
+    ):
+        column.caption(label)
 
-    st.dataframe(
-        display_df,
-        width="stretch",
-        hide_index=True
-    )
+    for row_index, session in summary.iterrows():
+        session_rows = df[
+            (df["ts_group"] == session["ts_group"])
+            & (df["Subject"] == session["Subject"])
+            & (df["Subject Code"] == session["Subject Code"])
+        ].copy()
+        session_rows["Attendance Status"] = session_rows["is_present"].map(
+            {True: "Present", False: "Absent"}
+        )
+        file_timestamp = str(session["ts_group"] or "attendance").replace(":", "-")
+        filename = f"attendance_{session['Subject Code']}_{file_timestamp}.xlsx"
+
+        with st.container(border=True):
+            columns = st.columns([1.5, 1.1, 1.1, 1.35, 0.85], vertical_alignment="center")
+            columns[0].write(session["Time"])
+            columns[1].write(session["Subject"])
+            columns[2].write(session["Subject Code"])
+            columns[3].write(session["Attendance Stats"])
+            columns[4].download_button(
+                "Download",
+                data=build_attendance_excel(session_rows, session),
+                file_name=filename,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                icon=":material/download:",
+                key=f"attendance_export_{row_index}",
+            )
 
 
 # =========================================================

@@ -33,10 +33,11 @@ def style_base_layout():
         h3 { font-size: 1.25rem !important; }
         p, label, [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"] { color: #aebbd3; }
 
-        .stButton > button { min-height: 2.75rem; border-radius: 12px !important; padding: .62rem 1rem !important; font-family:'DM Sans',sans-serif !important; font-weight:700 !important; border:1px solid transparent !important; box-shadow:none !important; transition:transform .16s ease,box-shadow .16s ease,background .16s ease !important; }
+        .stButton > button, .stDownloadButton > button { min-height: 2.75rem; border-radius: 12px !important; padding: .62rem 1rem !important; font-family:'DM Sans',sans-serif !important; font-weight:700 !important; border:1px solid transparent !important; box-shadow:none !important; transition:transform .16s ease,box-shadow .16s ease,background .16s ease !important; }
         .stButton > button[kind="primary"] { background: #6975ff !important; color: #fff !important; }
         .stButton > button[kind="secondary"] { background: #3d1837 !important; color: #f9a8d4 !important; border-color: #76345e !important; }
         .stButton > button[kind="tertiary"] { background: #18233d !important; color: #d5ddf1 !important; border-color: #334362 !important; }
+        .stDownloadButton > button { background: #6975ff !important; color: #fff !important; }
         .stButton > button:hover { transform: translateY(-1px) !important; box-shadow: 0 8px 18px rgba(73,87,222,.3) !important; }
         .stButton > button[kind="primary"]:hover { background: #7a84ff !important; }
         .stButton > button[kind="secondary"]:hover { background: #542044 !important; }

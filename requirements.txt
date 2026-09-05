@@ -3,6 +3,7 @@ streamlit
 # Utilities
 numpy
 pandas
+xlsxwriter
 
 # Face Recognition
 scikit-learn
