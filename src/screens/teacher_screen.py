@@ -188,10 +188,15 @@ def teacher_dashboard():
 
 def clear_attendance_images():
     """Clear photo data and the related Streamlit widgets in one action."""
+    had_images = bool(st.session_state.get("attendance_images"))
     st.session_state["attendance_images"] = []
     for widget_key in ("dialog_cam", "dialog_upload", "photo_tab"):
         st.session_state.pop(widget_key, None)
-    st.toast("All classroom photos cleared.")
+    st.toast(
+        "All classroom photos cleared."
+        if had_images
+        else "There are no classroom photos to clear."
+    )
 
 def teacher_tab_take_attendance():
 
@@ -295,7 +300,6 @@ def teacher_tab_take_attendance():
             width="stretch",
             type="tertiary",
             icon=":material/delete:",
-            disabled=not has_photos,
             key="clear_attendance_photos",
             on_click=clear_attendance_images,
         ):
@@ -313,9 +317,14 @@ def teacher_tab_take_attendance():
             width="stretch",
             type="secondary",
             icon=":material/analytics:",
-            disabled=not has_photos,
             key="run_face_analysis",
         ):
+
+            if not has_photos:
+                st.warning(
+                    "Add at least one classroom photo before running face analysis."
+                )
+                return
 
             with st.spinner(
                 "Deep scanning classroom photos..."
