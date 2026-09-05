@@ -89,10 +89,22 @@ def get_student_attendance(student_id):
 
 
 def create_attendance(logs):
+    if not logs:
+        raise ValueError("No attendance entries were generated to save.")
+
     response = supabase.table('attendance_logs').insert(logs).execute()
+    if not response.data:
+        raise RuntimeError("Supabase did not confirm that attendance was saved.")
     return response.data
 
 def get_attendance_for_teacher(teacher_id):
-    response = supabase.table('attendance_logs').select("*, subjects!inner(*), students(student_id, name)").eq('subjects.teacher_id', teacher_id).execute()
+    response = (
+        supabase
+        .table('attendance_logs')
+        .select("*, subjects!inner(*), students(student_id, name)")
+        .eq('subjects.teacher_id', teacher_id)
+        .order('timestamp', desc=True)
+        .execute()
+    )
     return response.data
 

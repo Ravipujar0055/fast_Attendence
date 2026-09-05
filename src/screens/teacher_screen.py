@@ -722,9 +722,11 @@ def teacher_tab_attendance_records():
         "teacher_id"
     ]
 
-    records = get_attendance_for_teacher(
-        teacher_id
-    )
+    try:
+        records = get_attendance_for_teacher(teacher_id)
+    except Exception as error:
+        st.error(f"Could not load attendance records: {error}")
+        return
 
     if not records:
 

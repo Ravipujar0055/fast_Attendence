@@ -21,13 +21,14 @@ def show_attendance_result(df, logs):
     with col2:
         if st.button('Confirm & Save', width='stretch', type='primary'):
             try:
-                create_attendance(logs)
-                st.toast("Attendance taken")
+                saved_records = create_attendance(logs)
+                st.session_state["current_teacher_tab"] = "attendance_records"
                 st.session_state.attendance_images = []
                 st.session_state.voice_attendance_results = None
+                st.toast(f"Attendance saved for {len(saved_records)} student(s).")
                 st.rerun()
             except Exception as e:
-                st.error('Sync failed!')
+                st.error(f"Attendance could not be saved: {e}")
 
 
 
