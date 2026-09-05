@@ -30,7 +30,10 @@ def add_photos_dialog():
     if st.session_state.photo_tab == 'camera':
         cam_photo = st.camera_input('Take Snapshot', key='dialog_cam')
         if cam_photo:
-            st.session_state.attendance_images.append(Image.open(cam_photo))
+            # Copy the pixels before Streamlit closes the uploaded file object.
+            st.session_state.attendance_images.append(
+                Image.open(cam_photo).convert("RGB").copy()
+            )
             st.toast('Photo Captured')
             st.rerun()
 
@@ -40,7 +43,10 @@ def add_photos_dialog():
 
         if uploaded_files:
             for f in uploaded_files:
-                st.session_state.attendance_images.append(Image.open(f))
+                # Store independent image data, not a reference to the uploader.
+                st.session_state.attendance_images.append(
+                    Image.open(f).convert("RGB").copy()
+                )
             
             st.toast('Photo Uploaded Successfully')
             st.rerun()

@@ -186,6 +186,13 @@ def teacher_dashboard():
 # TAKE ATTENDANCE
 # =========================================================
 
+def clear_attendance_images():
+    """Clear photo data and the related Streamlit widgets in one action."""
+    st.session_state["attendance_images"] = []
+    for widget_key in ("dialog_cam", "dialog_upload", "photo_tab"):
+        st.session_state.pop(widget_key, None)
+    st.toast("All classroom photos cleared.")
+
 def teacher_tab_take_attendance():
 
     teacher_id = st.session_state.teacher_data["teacher_id"]
@@ -288,12 +295,12 @@ def teacher_tab_take_attendance():
             width="stretch",
             type="tertiary",
             icon=":material/delete:",
-            disabled=not has_photos
+            disabled=not has_photos,
+            key="clear_attendance_photos",
+            on_click=clear_attendance_images,
         ):
-
-            st.session_state.attendance_images = []
-
-            st.rerun()
+            # The callback performs the reset before this run is rendered.
+            pass
 
     # =====================================================
     # RUN FACE ANALYSIS
@@ -306,7 +313,8 @@ def teacher_tab_take_attendance():
             width="stretch",
             type="secondary",
             icon=":material/analytics:",
-            disabled=not has_photos
+            disabled=not has_photos,
+            key="run_face_analysis",
         ):
 
             with st.spinner(
@@ -323,17 +331,18 @@ def teacher_tab_take_attendance():
                 # Analyze every uploaded photo
                 # -------------------------------------------------
 
+                failed_images = []
+
                 for idx, img in enumerate(
                     st.session_state.attendance_images
                 ):
 
-                    img_np = np.array(
-                        img.convert("RGB")
-                    )
-
-                    detected, _, _ = predict_attendance(
-                        img_np
-                    )
+                    try:
+                        img_np = np.array(img.convert("RGB"))
+                        detected, _, _ = predict_attendance(img_np)
+                    except Exception as error:
+                        failed_images.append(f"Photo {idx + 1}: {error}")
+                        continue
 
                     if detected:
 
@@ -348,20 +357,34 @@ def teacher_tab_take_attendance():
                                 f"Photo {idx + 1}"
                             )
 
+                if failed_images:
+                    st.warning(
+                        "Some photos could not be analyzed: "
+                        + "; ".join(failed_images)
+                    )
+
+                if len(failed_images) == len(st.session_state.attendance_images):
+                    st.error("Face analysis could not process any of the selected photos.")
+                    return
+
                 # -------------------------------------------------
                 # Get students enrolled in selected subject
                 # -------------------------------------------------
 
-                enrolled_res = (
-                    supabase
-                    .table("subject_students")
-                    .select("*, students(*)")
-                    .eq(
-                        "subject_id",
-                        selected_subject_id
+                try:
+                    enrolled_res = (
+                        supabase
+                        .table("subject_students")
+                        .select("*, students(*)")
+                        .eq(
+                            "subject_id",
+                            selected_subject_id
+                        )
+                        .execute()
                     )
-                    .execute()
-                )
+                except Exception as error:
+                    st.error(f"Could not load students for this subject: {error}")
+                    return
 
                 enrolled_students = enrolled_res.data or []
 
