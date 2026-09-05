@@ -2,6 +2,11 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from datetime import datetime
 
@@ -655,6 +660,60 @@ def build_attendance_excel(session_rows, session):
 
     return output.getvalue()
 
+
+def build_attendance_pdf(session_rows, session):
+    """Build a compact, ready-to-share PDF for one attendance session."""
+    output = BytesIO()
+    document = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        rightMargin=0.65 * inch,
+        leftMargin=0.65 * inch,
+        topMargin=0.65 * inch,
+        bottomMargin=0.65 * inch,
+    )
+    styles = getSampleStyleSheet()
+    title_style = styles["Title"]
+    title_style.textColor = colors.HexColor("#172554")
+    detail_style = styles["BodyText"]
+    detail_style.textColor = colors.HexColor("#475569")
+
+    table_rows = [["Student ID", "Student", "Status"]]
+    for _, student in session_rows.iterrows():
+        table_rows.append([
+            str(student["Student ID"]),
+            str(student["Student"]),
+            str(student["Attendance Status"]),
+        ])
+
+    attendance_table = Table(
+        table_rows,
+        colWidths=[1.15 * inch, 3.25 * inch, 1.25 * inch],
+        repeatRows=1,
+    )
+    attendance_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4F5EE8")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD5E1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+
+    document.build([
+        Paragraph("Attendance report", title_style),
+        Spacer(1, 0.14 * inch),
+        Paragraph(f"Subject: {session['Subject']} ({session['Subject Code']})", detail_style),
+        Paragraph(f"Session: {session['Time']}", detail_style),
+        Spacer(1, 0.22 * inch),
+        attendance_table,
+    ])
+    return output.getvalue()
+
 def teacher_tab_attendance_records():
 
     st.header("Attendance Records")
@@ -786,10 +845,10 @@ def teacher_tab_attendance_records():
     # -----------------------------------------------------
     # Display each session with its own shareable Excel export.
     # -----------------------------------------------------
-    headings = st.columns([1.5, 1.1, 1.1, 1.35, 0.85])
+    headings = st.columns([1.45, 1.05, 1.05, 1.25, 0.85, 0.85])
     for column, label in zip(
         headings,
-        ["Time", "Subject", "Subject Code", "Attendance Stats", "Export"],
+        ["Time", "Subject", "Subject Code", "Attendance Stats", "Format", "Export"],
     ):
         column.caption(label)
 
@@ -806,16 +865,30 @@ def teacher_tab_attendance_records():
         filename = f"attendance_{session['Subject Code']}_{file_timestamp}.xlsx"
 
         with st.container(border=True):
-            columns = st.columns([1.5, 1.1, 1.1, 1.35, 0.85], vertical_alignment="center")
+            columns = st.columns([1.45, 1.05, 1.05, 1.25, 0.85, 0.85], vertical_alignment="center")
             columns[0].write(session["Time"])
             columns[1].write(session["Subject"])
             columns[2].write(session["Subject Code"])
             columns[3].write(session["Attendance Stats"])
-            columns[4].download_button(
+            export_format = columns[4].selectbox(
+                "Export format",
+                ["Excel", "PDF"],
+                label_visibility="collapsed",
+                key=f"attendance_format_{row_index}",
+            )
+            if export_format == "PDF":
+                export_data = build_attendance_pdf(session_rows, session)
+                filename = filename.replace(".xlsx", ".pdf")
+                mime_type = "application/pdf"
+            else:
+                export_data = build_attendance_excel(session_rows, session)
+                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            columns[5].download_button(
                 "Download",
-                data=build_attendance_excel(session_rows, session),
+                data=export_data,
                 file_name=filename,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                mime=mime_type,
                 icon=":material/download:",
                 key=f"attendance_export_{row_index}",
             )

@@ -4,6 +4,7 @@ streamlit
 numpy
 pandas
 xlsxwriter
+reportlab
 
 # Face Recognition
 scikit-learn
@@ -24,3 +25,5 @@ librosa
 webrtcvad-wheels
 
 resemblyzer
+
+XlsxWriter
