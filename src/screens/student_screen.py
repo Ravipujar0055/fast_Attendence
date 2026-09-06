@@ -160,6 +160,10 @@ def student_dashboard():
                     "attended": 0,
                 },
             )
+            teacher = sub.get("teachers") or {}
+            if isinstance(teacher, list):
+                teacher = teacher[0] if teacher else {}
+            teacher_name = teacher.get("name", "Not assigned")
 
             # -------------------------------------------------
             # UNIQUE UNENROLL FUNCTION
@@ -210,6 +214,7 @@ def student_dashboard():
                     name=sub["name"],
                     code=sub["subject_code"],
                     section=sub["section"],
+                    teacher_name=teacher_name,
                     stats=[
                         ("📅", "Total", stats["total"]),
                         ("✅", "Attended", stats["attended"]),
