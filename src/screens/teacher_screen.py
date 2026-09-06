@@ -34,7 +34,11 @@ from src.components.dialog_attendance_results import attendance_result_dialog
 from src.components.dialog_voice_attendance import voice_attendance_dialog
 
 from src.pipelines.face_pipeline import predict_attendance
-from src.attendance_slots import TIME_SLOTS, format_attendance_session, timestamp_for_slot
+from src.attendance_slots import (
+    TIME_SLOTS,
+    format_attendance_session,
+    timestamp_for_attendance,
+)
 
 
 # =========================================================
@@ -271,7 +275,7 @@ def teacher_tab_take_attendance():
             add_photos_dialog()
 
     selected_subject_id = subject_options[selected_subject_label]
-    attendance_timestamp = timestamp_for_slot(selected_slot_start)
+    attendance_timestamp = timestamp_for_attendance(selected_slot_start)
 
     st.divider()
 
@@ -850,7 +854,7 @@ def teacher_tab_attendance_records():
     headings = st.columns([1.45, 1.05, 1.05, 1.25, 0.85, 0.85])
     for column, label in zip(
         headings,
-        ["Time", "Subject", "Subject Code", "Attendance Stats", "Format", "Export"],
+        ["Time Period", "Subject", "Subject Code", "Attendance Stats", "Format", "Export"],
     ):
         column.caption(label)
 
