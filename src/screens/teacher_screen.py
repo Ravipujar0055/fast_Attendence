@@ -8,8 +8,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from datetime import datetime
-
 from src.ui.base_layout import (
     style_background_dashboard,
     style_base_layout
@@ -36,6 +34,7 @@ from src.components.dialog_attendance_results import attendance_result_dialog
 from src.components.dialog_voice_attendance import voice_attendance_dialog
 
 from src.pipelines.face_pipeline import predict_attendance
+from src.attendance_slots import TIME_SLOTS, format_attendance_session, timestamp_for_slot
 
 
 # =========================================================
@@ -241,8 +240,8 @@ def teacher_tab_take_attendance():
         for s in subjects
     }
 
-    col1, col2 = st.columns(
-        [3, 1],
+    col1, col2, col3 = st.columns(
+        [2, 2, 1],
         vertical_alignment="bottom"
     )
 
@@ -255,6 +254,14 @@ def teacher_tab_take_attendance():
 
     with col2:
 
+        selected_slot_start, _ = st.selectbox(
+            "Attendance time slot",
+            options=TIME_SLOTS,
+            format_func=lambda slot: slot[1],
+        )
+
+    with col3:
+
         if st.button(
             "Add Photos",
             type="primary",
@@ -264,6 +271,7 @@ def teacher_tab_take_attendance():
             add_photos_dialog()
 
     selected_subject_id = subject_options[selected_subject_label]
+    attendance_timestamp = timestamp_for_slot(selected_slot_start)
 
     st.divider()
 
@@ -421,11 +429,6 @@ def teacher_tab_take_attendance():
                     results = []
                     attendance_to_log = []
 
-                    current_timestamp = (
-                        datetime.now()
-                        .strftime("%Y-%m-%dT%H:%M:%S")
-                    )
-
                     # -------------------------------------------------
                     # Generate attendance result
                     # -------------------------------------------------
@@ -477,7 +480,7 @@ def teacher_tab_take_attendance():
                             {
                                 "student_id": student_id,
                                 "subject_id": selected_subject_id,
-                                "timestamp": current_timestamp,
+                                "timestamp": attendance_timestamp,
                                 "is_present": bool(is_present)
                             }
                         )
@@ -514,7 +517,8 @@ def teacher_tab_take_attendance():
         ):
 
             voice_attendance_dialog(
-                selected_subject_id
+                selected_subject_id,
+                attendance_timestamp,
             )
 
 
@@ -750,11 +754,7 @@ def teacher_tab_attendance_records():
 
             try:
 
-                formatted_time = (
-                    datetime
-                    .fromisoformat(ts)
-                    .strftime("%Y-%m-%d %I:%M %p")
-                )
+                formatted_time = format_attendance_session(ts)
 
             except ValueError:
 
